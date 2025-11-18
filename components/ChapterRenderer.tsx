@@ -4,7 +4,7 @@ import fs from 'fs'
 import path from 'path'
 
 // Render mixed content (text + inline elements) with preserved document order
-function renderMixedContent(children: any[], keyPrefix: string = '0'): React.ReactNode {
+function renderMixedContent(children: any[], keyPrefix: string = '0', inHeading: boolean = false): React.ReactNode {
   if (!children || !Array.isArray(children)) return null
   
   return children.map((child, idx) => {
@@ -17,8 +17,9 @@ function renderMixedContent(children: any[], keyPrefix: string = '0'): React.Rea
     
     // Inline code
     if (child['#name'] === 'literal') {
+      const sizeClass = inHeading ? 'text-[0.8em]' : 'text-sm'
       return (
-        <code key={key} className="bg-base-300 text-base-content px-1.5 py-0.5 rounded font-mono text-sm">
+        <code key={key} className={`bg-base-300 text-base-content px-1.5 py-0.5 rounded font-mono ${sizeClass}`}>
           {child._ || ''}
         </code>
       )
@@ -31,14 +32,14 @@ function renderMixedContent(children: any[], keyPrefix: string = '0'): React.Rea
       
       if (hasNested) {
         // Nested emphasis (bold+italic) or emphasis with links
-        const content = renderMixedContent(child.$$, `${key}-nested`)
+        const content = renderMixedContent(child.$$, `${key}-nested`, inHeading)
         return role === 'strong' ? (
           <strong key={key} className="font-bold text-base-content italic">{content}</strong>
         ) : (
           <em key={key} className="italic">{content}</em>
         )
       } else {
-        const text = child._ || renderMixedContent(child.$$, `${key}-inner`)
+        const text = child._ || renderMixedContent(child.$$, `${key}-inner`, inHeading)
         return role === 'strong' ? (
           <strong key={key} className="font-bold text-base-content">{text}</strong>
         ) : (
@@ -360,22 +361,28 @@ function renderBlock(node: any, index: number): React.ReactNode {
 function renderSection(section: any, depth: number = 0): React.ReactNode {
   const children = section.$$ || []
   const id = section.$?.['xml:id'] || ''
-  const title = children.find((c: any) => c['#name'] === 'title')?._  || ''
+  const titleNode = children.find((c: any) => c['#name'] === 'title')
+  const title = titleNode?._ || ''
+  const titleChildren = titleNode?.$$ || []
   
   const elements: React.ReactNode[] = []
   
   // Add title
-  if (title) {
+  if (title || titleChildren.length > 0) {
+    const titleContent = titleChildren.length > 0 
+      ? renderMixedContent(titleChildren, 'title', true) 
+      : title
+    
     if (depth === 0) {
       elements.push(
         <h2 key="title" id={id} className="prose-heading mt-12 mb-6 scroll-mt-24">
-          {title}
+          {titleContent}
         </h2>
       )
     } else {
       elements.push(
         <h3 key="title" id={id} className="prose-subheading mb-4 scroll-mt-24">
-          {title}
+          {titleContent}
         </h3>
       )
     }
