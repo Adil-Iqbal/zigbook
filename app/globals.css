@@ -234,3 +234,8 @@ code[class*="language-"] .token.label {
     animation: none !important;
   }
 }
+
+[data-theme="wireframe"] .token.keyword,
+html[data-theme="wireframe"] .token.keyword {
+  color: #1990B8 !important;
+}
